@@ -47,3 +47,12 @@ def protected_profile(credentials = Depends(security)):
     if credentials is None or not credentials.credentials:
         raise HTTPException(status_code=401, detail={"error": "Access token required"})
     token = credentials.credentials
+    try:
+        user = supabase.auth.get_user(token)
+    except Exception:
+        raise HTTPException(status_code=401, detail={"error": "Invalid or expired token"})
+    return {
+        "id": user.user.id,
+        "email": user.user.email,
+        "created_at": user.user.created_at,
+    }
