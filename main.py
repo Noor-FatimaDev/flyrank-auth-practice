@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.security import HTTPBearer
 from dotenv import load_dotenv
 from supabase import Client, create_client
 from pydantic import BaseModel
@@ -17,6 +18,8 @@ class SignupRequest(BaseModel):
     
 app = FastAPI()
 
+security = HTTPBearer()
+
 @app.on_event("startup")
 async def startup_check():
     print("Server running and connected to Supabase client")
@@ -32,3 +35,15 @@ def login(body: SignupRequest):
     if not body.email or not body.password:
         raise HTTPException(status_code=401, detail={ "error": "Invalid login credentials" })
     return supabase.auth.sign_in_with_password({"email": body.email, "password": body.password})
+
+@app.get("/public/info")
+def public_info():
+    return {"message":"Welcome stranger! This info is public."}
+
+security = HTTPBearer(auto_error=False)
+
+@app.get("/protected/profile")
+def protected_profile(credentials = Depends(security)):
+    if credentials is None or not credentials.credentials:
+        raise HTTPException(status_code=401, detail={"error": "Access token required"})
+    token = credentials.credentials
